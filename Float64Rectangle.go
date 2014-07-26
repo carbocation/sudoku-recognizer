@@ -1,4 +1,3 @@
-
 package main
 
 import "image"
@@ -20,5 +19,3 @@ func NewFloat64Rectangle(r image.Rectangle) (ret Float64Rectangle) {
 	ret.Max = NewFloat64Point(r.Max)
 	return ret
 }
-
-

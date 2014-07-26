@@ -1,11 +1,10 @@
-
 package main
 
 import (
 	"fmt"
-	"rand"
-	"math"
 	"image"
+	"math"
+	"math/rand"
 )
 
 type Float64Point struct {
@@ -49,14 +48,14 @@ func (v *Float64Point) Rotate(theta float64) {
 	// http://en.wikipedia.org/wiki/Rotation_(mathematics)#Matrix_algebra
 	st := math.Sin(theta)
 	ct := math.Cos(theta)
-	xp := v.X * ct - v.Y * st
-	yp := v.X * st + v.Y * ct
+	xp := v.X*ct - v.Y*st
+	yp := v.X*st + v.Y*ct
 	v.X = xp
 	v.Y = yp
 }
 
 func (v Float64Point) L2Norm() float64 {
-	return math.Sqrt(v.X * v.X + v.Y * v.Y)
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }
 
 func PointMinus(a, b Float64Point) (r Float64Point) {
@@ -72,7 +71,7 @@ func PointPlus(a, b Float64Point) (r Float64Point) {
 }
 
 func DotProduct(a, b Float64Point) float64 {
-	return a.X * b.X + a.Y * b.Y
+	return a.X*b.X + a.Y*b.Y
 }
 
 func Distance(a, b Float64Point) float64 {
@@ -80,8 +79,7 @@ func Distance(a, b Float64Point) float64 {
 }
 
 func RandomPointBetween(lo, hi Float64Point) Float64Point {
-	x := float64(hi.X) - rand.Float64() * float64(hi.X - lo.X)
-	y := float64(hi.Y) - rand.Float64() * float64(hi.Y - lo.Y)
+	x := float64(hi.X) - rand.Float64()*float64(hi.X-lo.X)
+	y := float64(hi.Y) - rand.Float64()*float64(hi.Y-lo.Y)
 	return Float64Point{x, y}
 }
-

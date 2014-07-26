@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -7,11 +6,11 @@ import (
 	"math"
 )
 
-const (	// TODO find a consistent way to write this with stuff in edge_detectors
-	LINE_EXPANSION = 1.3
+const ( // TODO find a consistent way to write this with stuff in edge_detectors
+	LINE_EXPANSION  = 1.3
 	PROPORTION_KEEP = 0.7
-	NUM_LINES = 1	//20	// 9 cells in each dim, 10 lines in each dim X 2 dims
-	MAX_ITER = 10
+	NUM_LINES       = 1 //20	// 9 cells in each dim, 10 lines in each dim X 2 dims
+	MAX_ITER        = 10
 )
 
 /*func later() {
@@ -41,7 +40,7 @@ const (	// TODO find a consistent way to write this with stuff in edge_detectors
 
 		// for remaining 20% randomly place lines on the grid
 		//	- maybe utilize infomation about location of top 80%
-		//	- maybe give these lines one round of optimization so they can compete	
+		//	- maybe give these lines one round of optimization so they can compete
 
 		// increase each line length
 		for _,l := range lines {
@@ -79,7 +78,7 @@ func main() {
 			} else {
 				lines[i] = newline
 				cpy := CopyImage(img)
-				for _,l := range lines {
+				for _, l := range lines {
 					l.Draw(cpy, image.RGBAColor{255, 0, 0, 255})
 				}
 				SaveImage(cpy, fmt.Sprintf("%sdebug.%d.%d.png", base, i, iter))
@@ -90,8 +89,8 @@ func main() {
 
 type Params struct {
 	lambda_dtheta, delta_dtheta, max_dtheta float64
-	lambda_dx, delta_dx, max_dx float64
-	lambda_dy, delta_dy, max_dy float64
+	lambda_dx, delta_dx, max_dx             float64
+	lambda_dy, delta_dy, max_dy             float64
 }
 
 func DefaultParams() (p Params) {
@@ -111,7 +110,7 @@ func LocalOptimizePotential(line Line, img image.Image, p Params) (bestline Line
 	// TODO do some kind of branch and bound
 	var newline Line
 	bestpot := math.Inf(-1)
-	fmt.Printf("[LocalOptimizePotential] about to go through %d *s: ", int(2.0 * p.max_dtheta / p.delta_dtheta))
+	fmt.Printf("[LocalOptimizePotential] about to go through %d *s: ", int(2.0*p.max_dtheta/p.delta_dtheta))
 	best_theta := 0.0
 	for dtheta := -p.max_dtheta; dtheta <= p.max_dtheta; dtheta += p.delta_dtheta {
 		fmt.Printf("*")
@@ -120,7 +119,7 @@ func LocalOptimizePotential(line Line, img image.Image, p Params) (bestline Line
 				newline = line
 				newline.Rotate(dtheta)
 				newline.Shift(dx, dy)
-				p := LinePotential(newline, img) - p.lambda_dtheta * dtheta - p.lambda_dx * dx - p.lambda_dy * dy
+				p := LinePotential(newline, img) - p.lambda_dtheta*dtheta - p.lambda_dx*dx - p.lambda_dy*dy
 				if p > bestpot {
 					best_theta = dtheta
 					bestpot = p
@@ -135,7 +134,7 @@ func LocalOptimizePotential(line Line, img image.Image, p Params) (bestline Line
 }
 
 func LinePotential(line Line, img image.Image) (pot float64) {
-	for _,wp := range line.WeightedIterator() {
+	for _, wp := range line.WeightedIterator() {
 		darkness := DarknessAt(img, wp.P.X, wp.P.Y)
 		if wp.W < 0.0 || wp.W > 1.0 {
 			panic(fmt.Sprintf("[LinePotential] weight must be in [0,1]: %.2f", wp.W))
@@ -144,6 +143,3 @@ func LinePotential(line Line, img image.Image) (pot float64) {
 	}
 	return pot
 }
-
-
-

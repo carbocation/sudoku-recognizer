@@ -1,16 +1,15 @@
-
 package main
 
 import (
 	"fmt"
-	"math"
 	"image"
-	"rand"
+	"math"
+	"math/rand"
 	"os"
 )
 
 const (
-	SudokuGridDimension = 9	// side of board (in squares, not lines)
+	SudokuGridDimension = 9 // side of board (in squares, not lines)
 )
 
 type EdgeDetector struct {
@@ -48,12 +47,14 @@ func (ed EdgeDetector) AlignTo(img image.Image) {
 		for i := uint(0); i < cur_ed.num_proposals; i++ {
 			proposals[i] = cur_ed.Proposal(bounds)
 			potentials[i] = proposals[i].Potential(img)
-			if potentials[i] < minp { minp = potentials[i] }
+			if potentials[i] < minp {
+				minp = potentials[i]
+			}
 		}
 
 		// make sure all potentials >= 0.0, calculate sum
-		for i,_ := range potentials {
-			c := potentials[i] - minp + 1	// smallest proposal will have potential = 1.0
+		for i, _ := range potentials {
+			c := potentials[i] - minp + 1 // smallest proposal will have potential = 1.0
 			potentials[i] = math.Pow(c, ed.greedyness)
 		}
 
@@ -64,7 +65,9 @@ func (ed EdgeDetector) AlignTo(img image.Image) {
 		i := WeightedChoice(potentials)
 		cur_ed = proposals[i]
 		fmt.Printf("[EdgeDetector.AlignTo] accepting pot=%.1f\tfrom [ ", potentials[i])
-		for _,v := range potentials { fmt.Printf("%.1f ", v) }
+		for _, v := range potentials {
+			fmt.Printf("%.1f ", v)
+		}
 		fmt.Printf("]\n")
 
 		// test this on images to see how fast this should be decreased
@@ -82,22 +85,27 @@ func NewEdgeDetector(b Float64Rectangle) EdgeDetector {
 	ed.orientation_sensitivity = 3.0
 	ed.num_proposals = 75
 	ed.greedyness = 2.5
-	ed.proposal_variance = 4.0	// in degrees
+	ed.proposal_variance = 4.0 // in degrees
 
 	// place some lines
-	padding := 60.0	//2.0
-	num_lines := 4	//SudokuGridDimension + 1
-	dx := (b.Dx() - 2.0*padding) / float64(num_lines - 1)
-	dy := (b.Dx() - 2.0*padding) / float64(num_lines - 1)
-	x0 := b.Min.X + padding; xmax := b.Max.X - padding; x := x0
-	y0 := b.Min.Y + padding; ymax := b.Max.Y - padding; y := y0
+	padding := 60.0 //2.0
+	num_lines := 4  //SudokuGridDimension + 1
+	dx := (b.Dx() - 2.0*padding) / float64(num_lines-1)
+	dy := (b.Dx() - 2.0*padding) / float64(num_lines-1)
+	x0 := b.Min.X + padding
+	xmax := b.Max.X - padding
+	x := x0
+	y0 := b.Min.Y + padding
+	ymax := b.Max.Y - padding
+	y := y0
 	//fmt.Printf("[NewEdgeDetector] x0 = %.2f, y0 = %.2f, xmax = %.2f, ymax = %.2f\n", x0, y0, xmax, ymax)
 	for i := 0; i < num_lines; i++ {
-		v := Line{Float64Point{x, y0}, Float64Point{x, ymax}, ed.default_line_radius}	// vertical
-		h := Line{Float64Point{x0, y}, Float64Point{xmax, y}, ed.default_line_radius}	// horizontal
+		v := Line{Float64Point{x, y0}, Float64Point{x, ymax}, ed.default_line_radius} // vertical
+		h := Line{Float64Point{x0, y}, Float64Point{xmax, y}, ed.default_line_radius} // horizontal
 		ed.lines = append(ed.lines, v)
 		ed.lines = append(ed.lines, h)
-		x += dx; y += dy
+		x += dx
+		y += dy
 		//fmt.Printf("[NewEdgeDetector] v = %s, h = %s\n", v.String(), h.String())
 	}
 	//fmt.Printf("[ned] ed.lines = %s\n", ed.lines)
@@ -127,31 +135,31 @@ func (ed EdgeDetector) Proposal(bounds Float64Rectangle) EdgeDetector {
 
 	// rotations and shifts must be correlated
 	independent_scale := 0.1
-	mean_theta := (rand.Float64() * 2.0 - 1.0) * (math.Pi / 180.0 * ed.proposal_variance)
-	mean_dx := (rand.Float64() * 2.0 - 1.0) * ed.proposal_variance
-	mean_dy := (rand.Float64() * 2.0 - 1.0) * ed.proposal_variance
+	mean_theta := (rand.Float64()*2.0 - 1.0) * (math.Pi / 180.0 * ed.proposal_variance)
+	mean_dx := (rand.Float64()*2.0 - 1.0) * ed.proposal_variance
+	mean_dy := (rand.Float64()*2.0 - 1.0) * ed.proposal_variance
 
 	for i, l := range ed.lines {
 
-		nl := *new(Line)	// new line
+		nl := *new(Line) // new line
 		nl.radius = l.radius
 
 		// first rotate the line
-		theta := mean_theta + independent_scale * (rand.Float64() * 2.0 - 1.0) * (math.Pi / 180.0 * ed.proposal_variance)
+		theta := mean_theta + independent_scale*(rand.Float64()*2.0-1.0)*(math.Pi/180.0*ed.proposal_variance)
 		v := PointMinus(l.right, l.left)
 		z := v.Rotate(theta)
 
 		// scale back up to the correct length
 		// new and old vecs share a midpoint, add/subtract half of the difference
 		z.Scale(0.5)
-		nl.left = PointMinus(Midpoint(l.left, l.right), z) 
-		nl.right = PointPlus(Midpoint(l.left, l.right), z) 
+		nl.left = PointMinus(Midpoint(l.left, l.right), z)
+		nl.right = PointPlus(Midpoint(l.left, l.right), z)
 
 		// now apply left-right and up-down shifts
 		// TODO the indepented scale for dx dy shifts should be higher to allow for when
 		// the original distance between lines is too great or small
-		dx := mean_dx + independent_scale * (rand.Float64() * 2.0 - 1.0) * ed.proposal_variance	// left-right movement
-		dy := mean_dy + independent_scale * (rand.Float64() * 2.0 - 1.0) * ed.proposal_variance	// up-down movement
+		dx := mean_dx + independent_scale*(rand.Float64()*2.0-1.0)*ed.proposal_variance // left-right movement
+		dy := mean_dy + independent_scale*(rand.Float64()*2.0-1.0)*ed.proposal_variance // up-down movement
 		nl.left.X += dx
 		nl.left.Y += dy
 		nl.right.X += dx
@@ -164,14 +172,14 @@ func (ed EdgeDetector) Proposal(bounds Float64Rectangle) EdgeDetector {
 
 	// scalings (shrinks and stretches) in x and y directions
 	// TODO write variance struct that includes L/R, U/D shift amounts in (0,1)
-	stretch := (rand.Float64() * 2.0 - 1.0) * ed.proposal_variance
-	center := Float64Point{0.0, 0.0}	// find center of all lines, stretch to/from this point
-	for _,l := range new_ed.lines {
+	stretch := (rand.Float64()*2.0 - 1.0) * ed.proposal_variance
+	center := Float64Point{0.0, 0.0} // find center of all lines, stretch to/from this point
+	for _, l := range new_ed.lines {
 		center := PointPlus(center, Midpoint(l))
 	}
 	center.Scale(1.0 / len(new_ed.lines))
-	amount := 0.0	// TODO
-	for _,l := range new_ed.lines {
+	amount := 0.0 // TODO
+	for _, l := range new_ed.lines {
 		nmp := ShiftedMidpoint(l, center, amount)
 		half := PointMinus(l.right, Midpoint(l))
 		l.right = PointPlus(half, nmp)
@@ -203,12 +211,12 @@ func (ed EdgeDetector) Draw(img image.Image) image.Image {
 func (ed EdgeDetector) Potential(img image.Image) (p float64) {
 
 	// put a "sparse prior" on random steps
-		// steps should usually be mostly in one direction
-		// compare to coordinate descent and no prior
+	// steps should usually be mostly in one direction
+	// compare to coordinate descent and no prior
 
 	// does it make sense to have extra benefit for getting a cross at two intersecting lines?
-		// this could get fooled on the numbers
-		// probably not...
+	// this could get fooled on the numbers
+	// probably not...
 
 	// activation for each line and pixel
 	var delta, dist float64
@@ -218,9 +226,10 @@ func (ed EdgeDetector) Potential(img image.Image) (p float64) {
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			for _, line := range ed.lines {
 				// TODO may need to play with this formula
-				dist = line.SquaredDistance(float64(x), float64(y)) 
-				delta = DarknessAt(img, x, y) * math.Exp(-dist / line.radius)
-				p += delta; add += delta
+				dist = line.SquaredDistance(float64(x), float64(y))
+				delta = DarknessAt(img, x, y) * math.Exp(-dist/line.radius)
+				p += delta
+				add += delta
 				if math.IsInf(add, 1) {
 					fmt.Printf("[Potential] hit inf!\n")
 					os.Exit(1)
@@ -228,11 +237,12 @@ func (ed EdgeDetector) Potential(img image.Image) (p float64) {
 			}
 		}
 	}
-	p /= float64(len(ed.lines)); add /= float64(len(ed.lines))
+	p /= float64(len(ed.lines))
+	add /= float64(len(ed.lines))
 
 	// orientation of the lines
 	remove := 0.0
-	num_pairs := 0	// man up: N * (N-1) / 2
+	num_pairs := 0 // man up: N * (N-1) / 2
 	N := len(ed.lines)
 	for i := 1; i < N; i++ {
 		for j := 0; j < i; j++ {
@@ -257,10 +267,10 @@ func main() {
 	ed := NewEdgeDetector(NewFloat64Rectangle(img.Bounds()))
 
 	// draw out ED right after creating it
-	SaveImage(ed.Draw(img), base + "after_ed_init.png")
+	SaveImage(ed.Draw(img), base+"after_ed_init.png")
 
 	ed.AlignTo(img)
-	SaveImage(ed.Draw(img), base + "output.png")
+	SaveImage(ed.Draw(img), base+"output.png")
 }
 
 func test_draw() {
@@ -286,6 +296,3 @@ func test_draw() {
 	m_col_img := ed.Draw(m_gray_img)
 	SaveImage(m_col_img, outf)
 }
-
-
-
